@@ -27,7 +27,8 @@ import sys
 import json
 
 from PyQt4.QtCore import QTimer, QUrl, QObject, QSettings, QPoint, QRect, Qt, QSignalMapper
-from PyQt4.QtGui import QApplication, QSystemTrayIcon, QIcon, QPixmap, QImage, QPainter, QMenu, QAction, QDesktopServices, QColor
+from PyQt4.QtGui import QApplication, QSystemTrayIcon, QIcon, QPixmap, QImage, QPainter, \
+                        QMenu, QAction, QDesktopServices, QColor
 from PyQt4.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 POLL_INTERVAL = 2000
@@ -67,7 +68,7 @@ class JenkinsTray(QObject):
         self.newSubMenu.addSeparator()
         self.icon.setContextMenu(self.menu)
         self.status = ""
-        
+
     def updateContextMenuJobList(self):
         actiontexts = [action.text() for action in self.menu.actions()]
         for job in self.jobs:
@@ -77,19 +78,19 @@ class JenkinsTray(QObject):
                 self.openUrlMapper.setMapping(act, job.name)
                 act.triggered.connect(self.openUrlMapper.map)
                 self.updateActionIcon(act, job.color)
-        
+
     def watchNone(self):
         self.ignoredJobs += self.newjobs
         self.newjobs = []
         self.updateNewSubmenu()
         self.saveConfiguration()
-        
+
     def watchAll(self):
         self.jobs += self.newjobs
         self.newjobs = []
         self.updateNewSubmenu()
         self.saveConfiguration()
-        
+
     def watchJob(self, jobname):
         for job in filter(lambda x: x.name == jobname, self.newjobs):
             self.jobs.append(job)
@@ -97,7 +98,7 @@ class JenkinsTray(QObject):
         self.updateContextMenuJobList()
         self.updateNewSubmenu()
         self.saveConfiguration()
-        
+
     def updateNewSubmenu(self):
         for action in self.newSubMenu.actions():
             if action.text() != "Watch all" and action.text() != "Watch none":
@@ -111,7 +112,7 @@ class JenkinsTray(QObject):
     def openJobUrl(self, jobname):
         for job in filter(lambda x: x.name == jobname, self.jobs):
             QDesktopServices.openUrl(QUrl(job.url))
-        
+
     def readConfiguration(self):
         settings = QSettings("JenkinsTray", "JenkinsTray")
         return (self.readJobList(settings, "Jobs"), self.readJobList(settings, "IgnoredJobs", False))
@@ -131,12 +132,12 @@ class JenkinsTray(QObject):
             settings.endGroup()
         settings.endGroup()
         return jobs
-    
+
     def saveConfiguration(self):
         settings = QSettings("JenkinsTray", "JenkinsTray")
         self.storeJobList(settings, "Jobs", self.jobs)
         self.storeJobList(settings, "Ignored Jobs", self.ignoredJobs, False)
-        
+
     def storeJobList(self, settings, groupName, jobList, urlAndColor=True):
         settings.beginGroup(groupName)
         settings.remove("")
@@ -154,12 +155,12 @@ class JenkinsTray(QObject):
 
     def queryJenkins(self):
         self.startJobListingQuery()
-    
+
     def startJobListingQuery(self):
         request = QNetworkRequest(QUrl(JENKINS_SERVER+"/api/json"))
         self.jobListingReply = self.nam.get(request)
         self.jobListingReply.finished.connect(self.jobListingDone)
-        
+
     def jobListingDone(self):
         jsondata = json.loads(self.jobListingReply.readAll().data())
         jobdata = [Job(j["name"], j["url"], j["color"]) for j in jsondata["jobs"]]
@@ -192,7 +193,7 @@ class JenkinsTray(QObject):
             self.status = status
             print "Updating icon", status, problemcnt
             self.updateIcon(status, problemcnt)
-        
+
     def updateIcon(self, status, cnt):
         image = QImage(self.image)
         painter = QPainter(image)
@@ -211,7 +212,7 @@ class JenkinsTray(QObject):
         painter.end()
         print "Updated icon to", status, cnt
         self.icon.setIcon(QIcon(QPixmap.fromImage(image)))
-        
+
     def updateBrushForStatus(self, brush, status):
         if status == "disabled":
             brush.setColor(QColor(128,128,128))
@@ -222,12 +223,12 @@ class JenkinsTray(QObject):
         elif status == "red":
             brush.setColor(QColor(255,0,0))
         brush.setStyle(Qt.SolidPattern)
-        
+
     def updateAction(self, jobname, jobstatus):
         for action in self.menu.actions():
             if action.text() == jobname:
                 self.updateActionIcon(action, jobstatus)
-    
+
     def updateActionIcon(self, action, status):
         image = QImage(16, 16, QImage.Format_ARGB32)
         painter = QPainter(image)
