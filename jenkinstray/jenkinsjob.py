@@ -24,6 +24,15 @@
 
 from enum import IntEnum
 
+def colorToJenkinsState(colorstr):
+    assert(colorstr in ["blue", "yellow", "red"])
+    if colorstr == "blue":
+        return JenkinsState.Successful
+    elif colorstr == "yellow":
+        return JenkinsState.Unstable
+    else:
+        return JenkinsState.Failed
+
 class JenkinsState(IntEnum):
     Unstable = 0
     Failed = 1

@@ -22,15 +22,37 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from jenkinsjob import JenkinsState, JenkinsJob
+from jenkinsjob import JenkinsState, JenkinsJob, colorToJenkinsState
 
 class JenkinsMonitor(object):
     def __init__(self):
         self.jobs = []
-    
-    def refreshFromJson(self, jsonobj):
-        pass
-    
+
+    def refreshFromDict(self, dictobj):
+        knownjobnames = []
+        for jobinfo in dictobj["jobs"]:
+            job = self._findJobByName(jobinfo["name"])
+            color = colorToJenkinsState(jobinfo["color"])
+            if not job:
+                self.jobs.append(JenkinsJob(jobinfo["name"], False, jobinfo["url"], color))
+            else:
+                job.state = color
+            knownjobnames.append(jobinfo["name"])
+        for job in list(self.jobs):
+            if job.name not in knownjobnames:
+                self.jobs.remove(job)
+
+    def _findJobByName(self, name):
+        candidates = filter(lambda job: job.name == name, self.jobs)
+        assert(len(candidates) < 2)
+        if len(candidates) > 0:
+            return candidates[0]
+        return None
+
+    def allJobs(self):
+        for job in self.jobs:
+            yield job
+
     def __eq__(self, other):
         return self.jobs == other.jobs
 

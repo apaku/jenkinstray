@@ -52,10 +52,27 @@ class TestJenkinsMonitor(unittest.TestCase):
         jobs = [JenkinsJob("Name1", True, "Url1", JenkinsState.Successful), JenkinsJob("Name2", False, "Url2", JenkinsState.Failed)]
         monitor.jobs.append(jobs[0])
         monitor.jobs.append(jobs[1])
-        self.assertEqual(list(monitor.monitoredJobs()), [jobs[0]], "Only one job is monitored")
+        self.assertEqual(list(monitor.allJobs()), [jobs[0], jobs[1]], "Only one job is monitored")
+        self.assertEqual(list(monitor.monitoredJobs()), [jobs[0]], "two jobs alltogether")
         monitor.jobs.append(jobs[0])
         self.assertEqual(list(monitor.monitoredJobs()), [jobs[0], jobs[0]], "Two jobs are monitored")
+        self.assertEqual(list(monitor.allJobs()), [jobs[0], jobs[1], jobs[0]], "three jobs alltogether")
 
+    def testUpdating(self):
+        monitor = JenkinsMonitor()
+        jobs = [JenkinsJob("Name1", True, "Url1", JenkinsState.Successful), JenkinsJob("Name2", True, "Url2", JenkinsState.Failed)]
+        monitor.jobs.append(jobs[0])
+        monitor.jobs.append(jobs[1])
+        self.assertEqual(list(monitor.monitoredJobs()), [jobs[0], jobs[1]], "Only one job is monitored")
+        self.assertEqual(list(monitor.monitoredJobs()), [jobs[0], jobs[1]], "two jobs alltogether")
+
+        monitor.refreshFromDict({"jobs": [{"name":"Name1", "url": "Url1", "color": "yellow"},
+                                          {"name":"Name3", "url": "Url3", "color": "blue"}]})
+
+        updatedJob1 = jobs[0]
+        updatedJob1.state = JenkinsState.Unstable
+        self.assertEqual(list(monitor.monitoredJobs()), [updatedJob1], "Only one job is monitored")
+        self.assertEqual(list(monitor.allJobs()), [updatedJob1, JenkinsJob("Name3", False, "Url3", JenkinsState.Successful)], "two jobs alltogether")
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']
     unittest.main()
