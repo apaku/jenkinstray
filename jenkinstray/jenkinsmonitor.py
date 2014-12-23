@@ -22,25 +22,36 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import unittest
-from jenkinstray.jenkinsjob import JenkinsJob, JenkinsState
+from jenkinsjob import JenkinsState, JenkinsJob
 
-class TestJenkinsJob(unittest.TestCase):
+class JenkinsMonitor(object):
+    def __init__(self):
+        self.jobs = []
+    
+    def refreshFromJson(self, jsonobj):
+        pass
+    
+    def __eq__(self, other):
+        return self.jobs == other.jobs
 
-    def testCreationInvalidArgs(self):
-        self.assertRaises(AssertionError, lambda: JenkinsJob(None, None, None, None))
-        self.assertRaises(AssertionError, lambda: JenkinsJob("test", None, None, None))
-        self.assertRaises(AssertionError, lambda: JenkinsJob("test", True, None, None))
-        self.assertRaises(AssertionError, lambda: JenkinsJob("test", True, "foo", None))
-        self.assertRaises(AssertionError, lambda: JenkinsJob("test", True, "foo", 1))
-        self.assertRaises(AssertionError, lambda: JenkinsJob("test", None, None, JenkinsState.Failed))
+    @classmethod
+    def fromDict(cls, dictobj):
+        monitor = JenkinsMonitor()
+        for jobobj in dictobj["jobs"]:
+            monitor.jobs.append(JenkinsJob.fromDict(jobobj))
+        return monitor
 
-    def testJsonConversion(self):
-        job = JenkinsJob("Name", True, "URL", JenkinsState.Failed)
-        dictobj = job.toDict()
-        self.assertEqual(dictobj, {"name": "Name", "monitored": True, "url": "URL", "state": int(JenkinsState.Failed)}, "Verify dict conversion")
-        self.assertEqual(JenkinsJob.fromDict(dictobj), job, "Conversion roundtrip generates 'same' object")
+    def toDict(self):
+        return {"jobs": [job.toDict() for job in self.jobs]}
 
-if __name__ == "__main__":
-    # import sys;sys.argv = ['', 'Test.testName']
-    unittest.main()
+    def numFailedMonitoredJobs(self):
+        count = 0
+        for job in self.monitoredJobs():
+            if job.state == JenkinsState.Failed:
+                count += 1
+        return count
+
+    def monitoredJobs(self):
+        for job in self.jobs:
+            if job.monitored:
+                yield job
