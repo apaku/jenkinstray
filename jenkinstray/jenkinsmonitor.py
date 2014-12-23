@@ -23,12 +23,21 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from jenkinsjob import JenkinsState, JenkinsJob, colorToJenkinsState
+import urllib2
+import json
 
 class JenkinsMonitor(object):
-    def __init__(self):
+    def __init__(self, serverurl=None):
+        self.serverurl = serverurl
         self.jobs = []
 
-    def refreshFromDict(self, dictobj):
+    def refreshFromServer(self):
+        try:
+            self._refreshFromDict(json.load(urllib2.urlopen(self.serverurl + "/api/json")))
+        except urllib2.HTTPError, e:
+            raise RuntimeError("Failed to fetch jenkins data from: %s - %s" %(self.serverurl, e))
+
+    def _refreshFromDict(self, dictobj):
         knownjobnames = []
         for jobinfo in dictobj["jobs"]:
             job = self._findJobByName(jobinfo["name"])
