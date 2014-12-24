@@ -28,7 +28,32 @@ class ServerListModel(QtGui.QStringListModel):
     pass
 
 class JobListModel(QtGui.QStringListModel):
-    pass
+    def __init__(self, jobs):
+        QtGui.QStringListModel.__init__(self, map(lambda x: x["name"], jobs))
+        self.jobs = jobs
+
+    def data(self, idx, role):
+        """type: idx: QtCore.QModelIndex
+           type: role: QtCore.Qt.ItemDataRole"""
+        if role == QtCore.Qt.CheckStateRole:
+            return QtCore.Qt.Checked if self.jobs[idx.row()]["monitored"] else QtCore.Qt.Unchecked
+        else:
+            return QtGui.QStringListModel.data(self, idx, role)
+
+    def setData(self, idx, data, role):
+        """
+        :type idx: QtCore.QModelIndex
+        :type data: QtCore.QVariant
+        :type role: QtCore.Qt.ItemDataRole
+        """
+        if role == QtCore.Qt.CheckStateRole:
+            self.jobs[idx.row()]["monitored"] = data.toBool()
+            return True
+        else:
+            return QtGui.QStringListModel.data(self, idx, role)
+
+    def flags(self, idx):
+        return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsUserCheckable
 
 class SettingsWidget(QtGui.QWidget):
 
@@ -46,4 +71,4 @@ class SettingsWidget(QtGui.QWidget):
         """:type idx: QtCore.QModelIndex"""
         serverName = idx.data().toString()
         server = filter(lambda x: x["name"] == serverName, self.settings["servers"])[0]
-        self.jobList.setModel(JobListModel(map(lambda x: x["name"], server["jobs"])))
+        self.jobList.setModel(JobListModel(server["jobs"]))
