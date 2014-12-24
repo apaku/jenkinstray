@@ -76,11 +76,10 @@ class JenkinsMonitor(object):
         return {"jobs": [job.toDict() for job in self.jobs]}
 
     def numFailedMonitoredJobs(self):
-        count = 0
-        for job in self.monitoredJobs():
-            if job.state == JenkinsState.Failed:
-                count += 1
-        return count
+        return reduce(lambda cnt, job: cnt + 1 if job.state == JenkinsState.Failed else cnt, self.monitoredJobs(), 0)
+
+    def numUnstableMonitoredJobs(self):
+        return reduce(lambda cnt, job: cnt + 1 if job.state == JenkinsState.Unstable else cnt, self.monitoredJobs(), 0)
 
     def monitoredJobs(self):
         for job in self.jobs:

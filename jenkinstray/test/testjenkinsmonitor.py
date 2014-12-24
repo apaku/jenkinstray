@@ -58,6 +58,20 @@ class TestJenkinsMonitor(unittest.TestCase):
         monitor.jobs.append(JenkinsJob("Name3", True, "Url3", JenkinsState.Failed))
         self.assertEqual(monitor.numFailedMonitoredJobs(), 1, "One monitored job failed")
 
+    def testUnstableJobs(self):
+        monitor = JenkinsMonitor()
+        monitor.jobs.append(JenkinsJob("Name1", True, "Url1", JenkinsState.Successful))
+        monitor.jobs.append(JenkinsJob("Name2", False, "Url2", JenkinsState.Failed))
+        monitor.jobs.append(JenkinsJob("Name4", True, "Url3", JenkinsState.Unstable))
+        self.assertEqual(monitor.numUnstableMonitoredJobs(), 1, "No monitored job unstable")
+        monitor.jobs.append(JenkinsJob("Name4", True, "Url4", JenkinsState.Failed))
+        monitor.jobs.append(JenkinsJob("Name5", True, "Url5", JenkinsState.Successful))
+        self.assertEqual(monitor.numUnstableMonitoredJobs(), 1, "One monitored job unstable")
+        monitor.jobs.append(JenkinsJob("Name6", True, "Url6", JenkinsState.Unstable))
+        self.assertEqual(monitor.numUnstableMonitoredJobs(), 2, "Two monitored job unstable")
+        monitor.jobs.append(JenkinsJob("Name7", False, "Url7", JenkinsState.Unstable))
+        self.assertEqual(monitor.numUnstableMonitoredJobs(), 2, "Still Two monitored job unstable")
+
     def testMonitoredJobs(self):
         monitor = JenkinsMonitor()
         jobs = [JenkinsJob("Name1", True, "Url1", JenkinsState.Successful), JenkinsJob("Name2", False, "Url2", JenkinsState.Failed)]
