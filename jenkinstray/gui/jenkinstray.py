@@ -49,12 +49,18 @@ class JenkinsTray(QtCore.QObject):
 
     def openSettings(self):
         dialog = QtGui.QDialog()
-        settings = SettingsWidget(dialog, {"servers": [{"name": "a", "jobs": [{"name":"job1", "monitored":True}, {"name":"job2", "monitored":False}]},
+        settings = {"servers": [{"name": "a", "jobs": [{"name":"job1", "monitored":True}, {"name":"job2", "monitored":False}]},
                                                        {"name": "b", "jobs": [{"name":"job3", "monitored":True}, {"name":"job5", "monitored":False}]},
                                                        {"name": "c", "jobs": [{"name":"job4", "monitored":True}, {"name":"job6", "monitored":False}]},
-                                                      ], "refreshInterval": 60})
+                                                      ], "refreshInterval": 60}
+        settingswidget = SettingsWidget(dialog, settings)
         layout = QtGui.QVBoxLayout(dialog)
-        layout.addWidget(settings)
-        layout.addWidget(QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.StandardButtons(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel), QtCore.Qt.Horizontal, dialog))
+        layout.addWidget(settingswidget)
+        buttonbox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.StandardButtons(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel), QtCore.Qt.Horizontal, dialog)
+        layout.addWidget(buttonbox)
+        buttonbox.accepted.connect(dialog.accept)
+        buttonbox.rejected.connect(dialog.reject)
         dialog.setModal(True)
-        dialog.exec_()
+        if dialog.exec_() == QtGui.QDialog.Accepted:
+            print settings
+            pass
