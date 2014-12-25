@@ -64,8 +64,12 @@ class SettingsWidget(QtGui.QWidget):
         self.uiFile.open(QtCore.QIODevice.ReadOnly)
         uic.loadUi(self.uiFile, self)
         self.refreshInterval.setValue(self.settings["refreshInterval"])
+        self.refreshInterval.valueChanged.connect(self.updateRefreshInterval)
         self.serverList.setModel(ServerListModel(map(lambda x: x["name"], self.settings["servers"])))
         self.serverList.clicked.connect(self.serverSelected)
+
+    def updateRefreshInterval(self, val):
+        self.settings["refreshInterval"] = val
 
     def serverSelected(self, idx):
         """:type idx: QtCore.QModelIndex"""
