@@ -22,11 +22,14 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import sys
-
 from PyQt4 import QtCore, QtGui
 
 from settings import SettingsWidget
+from appdirs import user_config_dir
+import os
+import json
+
+CONFIG_FILENAME = "jenkinstray.json"
 
 class JenkinsTray(QtCore.QObject):
 
@@ -46,13 +49,18 @@ class JenkinsTray(QtCore.QObject):
         assert(not self.image.isNull())
         self.trayicon.setIcon(QtGui.QIcon(QtGui.QPixmap.fromImage(self.image)))
         self.trayicon.setVisible(True)
+        self.cfgDir = user_config_dir("jenkinstray", appauthor="jenkinstray", version="0.1")
+        self.settings = self.initializeSettings()
+
+    def initializeSettings(self):
+        try:
+            return json.load(open(os.path.join(self.cfgDir, CONFIG_FILENAME), "r"))
+        except:
+            return {"refreshInterval": 60, "servers": []}
 
     def openSettings(self):
         dialog = QtGui.QDialog()
-        settings = {"servers": [{"name": "a", "jobs": [{"name":"job1", "monitored":True}, {"name":"job2", "monitored":False}]},
-                                                       {"name": "b", "jobs": [{"name":"job3", "monitored":True}, {"name":"job5", "monitored":False}]},
-                                                       {"name": "c", "jobs": [{"name":"job4", "monitored":True}, {"name":"job6", "monitored":False}]},
-                                                      ], "refreshInterval": 60}
+        settings = dict(self.settings)
         settingswidget = SettingsWidget(dialog, settings)
         layout = QtGui.QVBoxLayout(dialog)
         layout.addWidget(settingswidget)
@@ -62,5 +70,10 @@ class JenkinsTray(QtCore.QObject):
         buttonbox.rejected.connect(dialog.reject)
         dialog.setModal(True)
         if dialog.exec_() == QtGui.QDialog.Accepted:
-            print settings
-            pass
+            self.settings = settings
+            self.writeSettings()
+
+    def writeSettings(self):
+        if not os.path.exists(self.cfgDir):
+            os.makedirs(self.cfgDir)
+        json.dump(self.settings, open(os.path.join(self.cfgDir, CONFIG_FILENAME), "w"), indent=4, separators=(",", ": "))
