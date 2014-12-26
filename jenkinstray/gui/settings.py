@@ -28,13 +28,15 @@ class ServerListModel(QtGui.QStringListModel):
     pass
 
 class JobListModel(QtGui.QStringListModel):
-    def __init__(self, jobs):
-        QtGui.QStringListModel.__init__(self, map(lambda x: x["name"], jobs))
+    def __init__(self, jobs, parent):
+        QtGui.QStringListModel.__init__(self, map(lambda x: x["name"], jobs), parent)
         self.jobs = jobs
 
     def data(self, idx, role):
-        """type: idx: QtCore.QModelIndex
-           type: role: QtCore.Qt.ItemDataRole"""
+        """
+        :type idx: QtCore.QModelIndex
+        :type role: QtCore.Qt.ItemDataRole
+        """
         if role == QtCore.Qt.CheckStateRole:
             return QtCore.Qt.Checked if self.jobs[idx.row()]["monitored"] else QtCore.Qt.Unchecked
         else:
@@ -65,14 +67,53 @@ class SettingsWidget(QtGui.QWidget):
         uic.loadUi(self.uiFile, self)
         self.refreshInterval.setValue(self.settings["refreshInterval"])
         self.refreshInterval.valueChanged.connect(self.updateRefreshInterval)
-        self.serverList.setModel(ServerListModel(map(lambda x: x["name"], self.settings["servers"])))
-        self.serverList.clicked.connect(self.serverSelected)
+        self.refreshModel()
+        self.removeServerBtn.setEnabled(False)
+        self.addServerBtn.clicked.connect(self.addServer)
+        self.removeServerBtn.clicked.connect(self.removeServer)
+
+    def addServer(self):
+        dlg = QtGui.QInputDialog(self)
+        dlg.setLabelText("Provide the normal url the Jenkins server can be contacted at:")
+        dlg.setWindowTitle("Add Jenkins Server")
+        dlg.setInputMode(QtGui.QInputDialog.TextInput)
+        dlg.setMinimumSize(120, 400)
+        if dlg.exec_() == QtGui.QDialog.Accepted:
+            self.settings["servers"].append({"url":dlg.textValue(), "jobs":[]})
+            self.refreshModel(dlg.textValue())
+
+    def removeServer(self):
+        selection = self.serverList.selectionModel().selectedRows()
+        for idx in selection:
+            self.settings["servers"].remove(idx.row())
+            self.refreshModel()
+
+    def refreshModel(self, selectServer=None):
+        self.serverList.setModel(ServerListModel(map(lambda x: x["url"], self.settings["servers"]), self.serverList))
+        self.serverList.selectionModel().selectionChanged.connect(self.serverSelected)
+        if selectServer is not None:
+            row = -1
+            for i in range(len(self.settings["servers"])):
+                if self.settings["servers"][i]["url"] == selectServer:
+                    row = i
+            if row != -1:
+                model = self.serverList.model()
+                self.serverList.selectionModel().select(model.index(row, 0, QtCore.QModelIndex()), QtGui.QItemSelectionModel.ClearAndSelect)
 
     def updateRefreshInterval(self, val):
         self.settings["refreshInterval"] = val
 
-    def serverSelected(self, idx):
-        """:type idx: QtCore.QModelIndex"""
-        serverName = idx.data().toString()
-        server = filter(lambda x: x["name"] == serverName, self.settings["servers"])[0]
-        self.jobList.setModel(JobListModel(server["jobs"]))
+    def serverSelected(self, selected, deselected):
+        """
+        :type selected: QtGui.QItemSelection
+        :type deselected: QtGui.QItemSelection
+        """
+        if len(selected.indexes()) > 0:
+            idx = selected.indexes()[0]
+            self.removeServerBtn.setEnabled(True)
+            serverUrl = idx.data().toString()
+            server = filter(lambda x: x["url"] == serverUrl, self.settings["servers"])[0]
+            self.jobList.setModel(JobListModel(server["jobs"], self.jobList))
+        else:
+            self.removeServerBtn.setEnabled(False)
+            self.jobList.setModel(None)
