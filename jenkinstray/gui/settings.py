@@ -53,10 +53,10 @@ class JobListModel(QtGui.QStringListModel):
         :type role: QtCore.Qt.ItemDataRole
         """
         if role == QtCore.Qt.CheckStateRole:
-            self.jobs[idx.row()]["monitored"] = data
+            self.jobs[idx.row()]["monitored"] = True if data == QtCore.Qt.Checked else False
             return True
         else:
-            return QtGui.QStringListModel.data(self, idx, role)
+            return QtGui.QStringListModel.setData(self, idx, data, role)
 
     def flags(self, idx):
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsUserCheckable
