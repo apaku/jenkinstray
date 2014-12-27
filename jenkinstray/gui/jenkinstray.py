@@ -79,19 +79,41 @@ class JenkinsTray(QtCore.QObject):
             self.monitors.append(monitor)
         self.updateUiFromMonitors()
 
+
+    def addCountToImage(self, failCnt, unstableCnt):
+        painter = QtGui.QPainter(self.image)
+        font = painter.font()
+        maxwidth = self.image.width() - round(self.image.width() * .3)
+        maxheight = self.image.height() - round(self.image.height() * .3)
+        metrics = QtGui.QFontMetrics(font)
+        text = str(failCnt + unstableCnt)
+        while metrics.width(text) < maxwidth and metrics.height() < maxheight:
+            font.setPointSize(font.pointSize() + 1)
+            metrics = QtGui.QFontMetrics(font)
+
+        painter.setFont(font)
+        painter.drawText(self.image.rect(), QtCore.Qt.AlignVCenter | QtCore.Qt.AlignCenter, text)
+        painter.end()
+
     def updateUiFromMonitors(self):
         failCnt = 0
         unstableCnt = 0
+        successfulCnt = 0
         for monitor in self.monitors:
-            failCnt += monitor.numFailedMonitoredJobs()
-            unstableCnt += monitor.numUnstableMonitoredJobs()
+            monitorFailCnt = monitor.numFailedMonitoredJobs()
+            monitorUnstableCnt = monitor.numUnstableMonitoredJobs()
+            failCnt += monitorFailCnt
+            unstableCnt += monitorUnstableCnt
+            successfulCnt += len(list(monitor.monitoredJobs())) - monitorFailCnt - monitorUnstableCnt
         if failCnt > 0:
             self.image = QtGui.QImage(":///images/jenkinstray_failed.png")
         elif unstableCnt > 0:
             self.image = QtGui.QImage(":///images/jenkinstray_unstable.png")
         else:
             self.image = QtGui.QImage(":///images/jenkinstray_success.png")
+        self.addCountToImage(failCnt, unstableCnt)
         self.trayicon.setIcon(QtGui.QIcon(QtGui.QPixmap.fromImage(self.image)))
+        self.trayicon.setToolTip("%s failed jobs\n%s unstable jobs\n%s successful jobs" % (failCnt, unstableCnt, successfulCnt))
 
     def initializeSettings(self):
         try:
