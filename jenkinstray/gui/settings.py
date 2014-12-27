@@ -23,6 +23,10 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from PyQt4 import QtCore, QtGui, uic
+from PyQt4.Qt import QProgressDialog
+from threading import Thread
+from ..jenkinsjob import jenkinsStateToColor
+from ..jenkinsmonitor import JenkinsMonitor
 
 class ServerListModel(QtGui.QStringListModel):
     pass
@@ -99,6 +103,8 @@ class SettingsWidget(QtGui.QWidget):
             if row != -1:
                 model = self.serverList.model()
                 self.serverList.selectionModel().select(model.index(row, 0, QtCore.QModelIndex()), QtGui.QItemSelectionModel.ClearAndSelect)
+        else:
+            self.jobList.setModel(None)
 
     def updateRefreshInterval(self, val):
         self.settings["refreshInterval"] = val
