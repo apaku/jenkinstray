@@ -49,9 +49,16 @@ class JenkinsTray(QtCore.QObject):
         self.menu = QtGui.QMenu()
         self.settingsAct = QtGui.QAction("Settings...", self.menu)
         self.settingsAct.activated.connect(self.openSettings)
+        self.aboutQtAct = QtGui.QAction("About Qt", self.menu)
+        self.aboutQtAct.activated.connect(self.aboutQt)
+        self.aboutAct = QtGui.QAction("About %s" % QtGui.qApp.applicationName(), self.menu)
+        self.aboutAct.activated.connect(self.aboutApp)
         self.quitAct = QtGui.QAction("Quit", self.menu)
         self.quitAct.activated.connect(self.shutdown)
         self.menu.addAction(self.settingsAct)
+        self.menu.addSeparator()
+        self.menu.addAction(self.aboutAct)
+        self.menu.addAction(self.aboutQtAct)
         self.menu.addSeparator()
         self.menu.addAction(self.quitAct)
         self.trayicon.setContextMenu(self.menu)
@@ -66,6 +73,15 @@ class JenkinsTray(QtCore.QObject):
         self.serverInfoUpdated.connect(self.updateUiFromMonitors)
         self.updateFromSettings()
         self.timer.start()
+
+    def aboutApp(self):
+        QtGui.QMessageBox.about(None,
+                                "About %s" % QtGui.qApp.applicationName(),
+                                "<b>About %s</b><br /><br />Version: %s<br /><br />Jenkins Tray is a system tray application that monitors one or more jobs running on one or more jenkins instances and shows the overal status of the jobs as well as allowing access to the job web pages." % (QtGui.qApp.applicationName(),
+                                                    QtGui.qApp.applicationVersion()))
+
+    def aboutQt(self):
+        QtGui.QMessageBox.aboutQt(None, "About Qt")
 
     def updateFromSettings(self):
         self.timer.setInterval(self.settings["refreshInterval"] * 1000)

@@ -33,6 +33,8 @@ def main(args):
     global app
     global tray
     app = QtGui.QApplication(args)
+    app.setApplicationVersion("0.1")
+    app.setApplicationName("Jenkins Tray")
     QtGui.QApplication.setQuitOnLastWindowClosed(False)
     tray = JenkinsTray(app)
     return app.exec_()
