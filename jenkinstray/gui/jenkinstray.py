@@ -30,6 +30,7 @@ import os
 import json
 import threading
 from ..jenkinsmonitor import JenkinsMonitor
+from ..jenkinsjob import jenkinsStateToColor
 
 CONFIG_FILENAME = "jenkinstray.json"
 
@@ -49,7 +50,7 @@ class JenkinsTray(QtCore.QObject):
         self.settingsAct = QtGui.QAction("Settings...", self.menu)
         self.settingsAct.activated.connect(self.openSettings)
         self.quitAct = QtGui.QAction("Quit", self.menu)
-        self.quitAct.activated.connect(QtGui.qApp.quit)
+        self.quitAct.activated.connect(self.shutdown)
         self.menu.addAction(self.settingsAct)
         self.menu.addSeparator()
         self.menu.addAction(self.quitAct)
@@ -96,6 +97,8 @@ class JenkinsTray(QtCore.QObject):
         painter.end()
 
     def updateUiFromMonitors(self):
+        self.updateSettingsFromMonitors()
+        self.writeSettings()
         failCnt = 0
         unstableCnt = 0
         successfulCnt = 0
@@ -142,3 +145,15 @@ class JenkinsTray(QtCore.QObject):
         if not os.path.exists(self.cfgDir):
             os.makedirs(self.cfgDir)
         json.dump(self.settings, open(os.path.join(self.cfgDir, CONFIG_FILENAME), "w"), indent=4, separators=(",", ": "))
+
+    def updateSettingsFromMonitors(self):
+        for monitor in self.monitors:
+            server = filter(lambda server: server["url"] == monitor.serverurl, self.settings["servers"])[0]
+            server["jobs"] = []
+            for job in monitor.allJobs():
+                server["jobs"].append(job.toDict())
+
+    def shutdown(self):
+        self.updateSettingsFromMonitors()
+        self.writeSettings()
+        QtGui.qApp.quit()
