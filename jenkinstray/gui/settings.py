@@ -89,7 +89,7 @@ class SettingsWidget(QtGui.QWidget):
     def removeServer(self):
         selection = self.serverList.selectionModel().selectedRows()
         for idx in selection:
-            self.settings["servers"].remove(idx.row())
+            del self.settings["servers"][idx.row()]
             self.refreshModel()
 
     def refreshModel(self, selectServer=None):
