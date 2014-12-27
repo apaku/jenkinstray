@@ -25,8 +25,8 @@
 import sys
 
 from PyQt4 import QtGui, QtCore
-from gui.jenkinstray import JenkinsTray
-import rcc_jenkinstray
+from jenkinstray.gui.jenkinstray import JenkinsTray
+from jenkinstray import rcc_jenkinstray
 
 def main(args):
     global app
