@@ -64,10 +64,8 @@ class JobListModel(QtGui.QStringListModel):
 def loadJobs(settingsWidget, serverurl):
     monitor = JenkinsMonitor(serverurl)
     monitor.refreshFromServer()
-    settingsWidget.jobsReceived(serverurl, map(lambda job: {"color": jenkinsStateToColor(job.state),
-                                                            "name": job.name,
-                                                            "monitored": False,
-                                                            "url": job.url}, monitor.jobs))
+    settingsWidget.jobsReceived(serverurl, map(lambda job: {"name": job.name,
+                                                            "monitored": False}, monitor.jobs))
 
 class SettingsWidget(QtGui.QWidget):
 

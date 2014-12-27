@@ -33,14 +33,6 @@ def colorToJenkinsState(colorstr):
     else:
         return JenkinsState.Failed
 
-def jenkinsStateToColor(state):
-    if state == JenkinsState.Successful:
-        return "blue"
-    elif state == JenkinsState.Failed:
-        return "red"
-    elif state == JenkinsState.Unstable:
-        return "yellow"
-
 class JenkinsState(IntEnum):
     Unstable = 0
     Failed = 1

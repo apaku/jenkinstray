@@ -30,7 +30,6 @@ import os
 import json
 import threading
 from ..jenkinsmonitor import JenkinsMonitor
-from ..jenkinsjob import jenkinsStateToColor
 
 CONFIG_FILENAME = "jenkinstray.json"
 
@@ -45,6 +44,7 @@ class JenkinsTray(QtCore.QObject):
 
     def __init__(self, parent):
         QtCore.QObject.__init__(self, parent)
+        self.monitors = []
         self.trayicon = QtGui.QSystemTrayIcon(self)
         self.menu = QtGui.QMenu()
         self.settingsAct = QtGui.QAction("Settings...", self.menu)
@@ -67,11 +67,10 @@ class JenkinsTray(QtCore.QObject):
         self.trayicon.setIcon(QtGui.QIcon(QtGui.QPixmap.fromImage(self.image)))
         self.trayicon.setVisible(True)
         self.cfgDir = user_config_dir("jenkinstray", appauthor="jenkinstray", version="0.1")
-        self.settings = self.initializeSettings()
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(lambda: threading.Thread(target=refreshMonitors(self)).start())
         self.serverInfoUpdated.connect(self.updateUiFromMonitors)
-        self.updateFromSettings()
+        self.updateFromSettings(self.readSettings())
         self.timer.start()
 
     def aboutApp(self):
@@ -83,19 +82,23 @@ class JenkinsTray(QtCore.QObject):
     def aboutQt(self):
         QtGui.QMessageBox.aboutQt(None, "About Qt")
 
-    def updateFromSettings(self):
-        self.timer.setInterval(self.settings["refreshInterval"] * 1000)
-        self.monitors = []
-        for server in self.settings["servers"]:
-            monitor = JenkinsMonitor(server["url"])
-            monitor._refreshFromDict(server)
-            for job in monitor.jobs:
-                settingsjob = filter(lambda settingsjob: settingsjob["name"] == job.name, server["jobs"])[0]
-                if settingsjob["monitored"]:
-                    job.enableMonitoring()
-            self.monitors.append(monitor)
-        self.updateUiFromMonitors()
-
+    def updateFromSettings(self, settings):
+        self.timer.setInterval(settings["refreshInterval"] * 1000)
+        for server in settings["servers"]:
+            match = filter(lambda monitor: monitor.serverurl == server["url"], self.monitors)
+            monitor = None
+            if match:
+                monitor = match[0]
+            else:
+                monitor = JenkinsMonitor(server["url"])
+                monitor.refreshFromServer()
+                self.monitors.append(monitor)
+            for job in server["jobs"]:
+                monitorjob = filter(lambda monitorjob: monitorjob.name == job["name"], monitor.allJobs())[0]
+                if job["monitored"]:
+                    monitorjob.enableMonitoring()
+                else:
+                    monitorjob.disableMonitoring()
 
     def addCountToImage(self, failCnt, unstableCnt):
         painter = QtGui.QPainter(self.image)
@@ -113,8 +116,7 @@ class JenkinsTray(QtCore.QObject):
         painter.end()
 
     def updateUiFromMonitors(self):
-        self.updateSettingsFromMonitors()
-        self.writeSettings()
+        self.writeSettings(self.createSettingsFromMonitors())
         failCnt = 0
         unstableCnt = 0
         successfulCnt = 0
@@ -130,11 +132,12 @@ class JenkinsTray(QtCore.QObject):
             self.image = QtGui.QImage(":///images/jenkinstray_unstable.png")
         else:
             self.image = QtGui.QImage(":///images/jenkinstray_success.png")
-        self.addCountToImage(failCnt, unstableCnt)
+        if failCnt > 0 or unstableCnt > 0:
+            self.addCountToImage(failCnt, unstableCnt)
         self.trayicon.setIcon(QtGui.QIcon(QtGui.QPixmap.fromImage(self.image)))
         self.trayicon.setToolTip("%s failed jobs\n%s unstable jobs\n%s successful jobs" % (failCnt, unstableCnt, successfulCnt))
 
-    def initializeSettings(self):
+    def readSettings(self):
         try:
             return json.load(open(os.path.join(self.cfgDir, CONFIG_FILENAME), "r"))
         except:
@@ -143,8 +146,8 @@ class JenkinsTray(QtCore.QObject):
     def openSettings(self):
         dialog = QtGui.QDialog()
         dialog.setWindowTitle("Jenkins Tray Settings")
-        settings = dict(self.settings)
-        settingswidget = SettingsWidget(dialog, settings)
+        settingsdata = self.createSettingsFromMonitors()
+        settingswidget = SettingsWidget(dialog, settingsdata)
         layout = QtGui.QVBoxLayout(dialog)
         layout.addWidget(settingswidget)
         buttonbox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.StandardButtons(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel), QtCore.Qt.Horizontal, dialog)
@@ -153,23 +156,28 @@ class JenkinsTray(QtCore.QObject):
         buttonbox.rejected.connect(dialog.reject)
         dialog.setModal(True)
         if dialog.exec_() == QtGui.QDialog.Accepted:
-            self.settings = settings
-            self.writeSettings()
-            self.updateFromSettings()
+            self.writeSettings(settingsdata)
+            self.updateFromSettings(settingsdata)
 
-    def writeSettings(self):
+    def writeSettings(self, settings):
         if not os.path.exists(self.cfgDir):
             os.makedirs(self.cfgDir)
-        json.dump(self.settings, open(os.path.join(self.cfgDir, CONFIG_FILENAME), "w"), indent=4, separators=(",", ": "))
+        json.dump(settings, open(os.path.join(self.cfgDir, CONFIG_FILENAME), "w"), indent=4, separators=(",", ": "))
 
-    def updateSettingsFromMonitors(self):
-        for monitor in self.monitors:
-            server = filter(lambda server: server["url"] == monitor.serverurl, self.settings["servers"])[0]
-            server["jobs"] = []
-            for job in monitor.allJobs():
-                server["jobs"].append(job.toDict())
+    def createSettingsFromMonitors(self):
+        return {
+                "refreshInterval": int(self.timer.interval() / 1000),
+                "servers": map(lambda monitor: {
+                                                "url": monitor.serverurl,
+                                                "jobs": map(lambda job: {
+                                                                         "name": job.name,
+                                                                         "monitored": job.monitored
+                                                                        },
+                                                            monitor.allJobs())
+                                               },
+                               self.monitors)
+               }
 
     def shutdown(self):
-        self.updateSettingsFromMonitors()
-        self.writeSettings()
+        self.writeSettings(self.createSettingsFromMonitors())
         QtGui.qApp.quit()
