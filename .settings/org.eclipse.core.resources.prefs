@@ -1,6 +1,7 @@
 eclipse.preferences.version=1
 encoding//jenkinstray/gui/jenkinstray.py=utf-8
 encoding//jenkinstray/gui/settings.py=utf-8
+encoding//jenkinstray/initsip.py=utf-8
 encoding//jenkinstray/jenkinsjob.py=utf-8
 encoding//jenkinstray/jenkinsmonitor.py=utf-8
 encoding//jenkinstray/rcc_jenkinstray.py=utf-8

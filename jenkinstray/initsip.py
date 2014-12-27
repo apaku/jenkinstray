@@ -22,20 +22,12 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import sys
-from jenkinstray.initsip import setupSipApi
-setupSipApi()
-from PyQt4 import QtGui
-from jenkinstray.gui.jenkinstray import JenkinsTray
-from jenkinstray import rcc_jenkinstray
-
-def main(args):
-    global app
-    global tray
-    app = QtGui.QApplication(args)
-    QtGui.QApplication.setQuitOnLastWindowClosed(False)
-    tray = JenkinsTray(app)
-    return app.exec_()
-
-if __name__ == '__main__':
-        sys.exit(main(sys.argv))
+def setupSipApi():
+    import sip
+    sip.setapi("QString", 2)
+    sip.setapi("QDate", 2)
+    sip.setapi("QDateTime", 2)
+    sip.setapi("QTextStream", 2)
+    sip.setapi("QTime", 2)
+    sip.setapi("QUrl", 2)
+    sip.setapi("QVariant", 2)

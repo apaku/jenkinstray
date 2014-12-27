@@ -53,7 +53,7 @@ class JobListModel(QtGui.QStringListModel):
         :type role: QtCore.Qt.ItemDataRole
         """
         if role == QtCore.Qt.CheckStateRole:
-            self.jobs[idx.row()]["monitored"] = data.toBool()
+            self.jobs[idx.row()]["monitored"] = data
             return True
         else:
             return QtGui.QStringListModel.data(self, idx, role)
@@ -100,7 +100,7 @@ class SettingsWidget(QtGui.QWidget):
 
     def fetchJobs(self, serverurl):
         dlg = QProgressDialog(self)
-        thread = Thread(target=lambda: loadJobs(self, str(serverurl)))
+        thread = Thread(target=lambda: loadJobs(self, serverurl))
         thread.start()
         self.jobsDone.connect(dlg.close)
         dlg.exec_()
@@ -141,7 +141,7 @@ class SettingsWidget(QtGui.QWidget):
         if len(selected.indexes()) > 0:
             idx = selected.indexes()[0]
             self.removeServerBtn.setEnabled(True)
-            serverUrl = idx.data().toString()
+            serverUrl = idx.data()
             server = filter(lambda x: x["url"] == serverUrl, self.settings["servers"])[0]
             self.jobList.setModel(JobListModel(server["jobs"], self.jobList))
         else:
