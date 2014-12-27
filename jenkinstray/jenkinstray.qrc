@@ -1,6 +1,9 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
     <file>images/jenkinstray.png</file>
+    <file>images/jenkinstray_unstable.png</file>
+    <file>images/jenkinstray_success.png</file>
+    <file>images/jenkinstray_failed.png</file>
     <file>gui/settings.ui</file>
 </qresource>
 </RCC>

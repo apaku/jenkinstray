@@ -80,10 +80,18 @@ class JenkinsTray(QtCore.QObject):
         self.updateUiFromMonitors()
 
     def updateUiFromMonitors(self):
+        failCnt = 0
+        unstableCnt = 0
         for monitor in self.monitors:
-            print monitor.serverurl
-            for job in monitor.jobs:
-                print "  " + job.name
+            failCnt += monitor.numFailedMonitoredJobs()
+            unstableCnt += monitor.numUnstableMonitoredJobs()
+        if failCnt > 0:
+            self.image = QtGui.QImage(":///images/jenkinstray_failed.png")
+        elif unstableCnt > 0:
+            self.image = QtGui.QImage(":///images/jenkinstray_unstable.png")
+        else:
+            self.image = QtGui.QImage(":///images/jenkinstray_success.png")
+        self.trayicon.setIcon(QtGui.QIcon(QtGui.QPixmap.fromImage(self.image)))
 
     def initializeSettings(self):
         try:
