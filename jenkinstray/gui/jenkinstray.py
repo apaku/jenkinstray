@@ -28,10 +28,19 @@ from settings import SettingsWidget
 from appdirs import user_config_dir
 import os
 import json
+import threading
+from ..jenkinsmonitor import JenkinsMonitor
 
 CONFIG_FILENAME = "jenkinstray.json"
 
+def refreshMonitors(trayObject):
+    for monitor in trayObject.monitors:
+        monitor.refreshFromServer()
+    trayObject.serverInfoUpdated.emit()
+
 class JenkinsTray(QtCore.QObject):
+
+    serverInfoUpdated = QtCore.pyqtSignal()
 
     def __init__(self, parent):
         QtCore.QObject.__init__(self, parent)
@@ -51,6 +60,25 @@ class JenkinsTray(QtCore.QObject):
         self.trayicon.setVisible(True)
         self.cfgDir = user_config_dir("jenkinstray", appauthor="jenkinstray", version="0.1")
         self.settings = self.initializeSettings()
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(lambda: threading.Thread(target=refreshMonitors(self)).start())
+        self.serverInfoUpdated.connect(self.updateUiFromMonitors)
+        self.updateFromSettings()
+        self.timer.start()
+
+    def updateFromSettings(self):
+        self.timer.setInterval(self.settings["refreshInterval"] * 1000)
+        self.monitors = []
+        for server in self.settings["servers"]:
+            monitor = JenkinsMonitor(server["url"])
+            monitor._refreshFromDict(server)
+            self.monitors.append(monitor)
+
+    def updateUiFromMonitors(self):
+        for monitor in self.monitors:
+            print monitor.serverurl
+            for job in monitor.jobs:
+                print "  " + job.name
 
     def initializeSettings(self):
         try:
@@ -73,6 +101,7 @@ class JenkinsTray(QtCore.QObject):
         if dialog.exec_() == QtGui.QDialog.Accepted:
             self.settings = settings
             self.writeSettings()
+            self.updateFromSettings()
 
     def writeSettings(self):
         if not os.path.exists(self.cfgDir):
