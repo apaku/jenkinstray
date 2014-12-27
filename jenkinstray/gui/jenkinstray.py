@@ -72,6 +72,10 @@ class JenkinsTray(QtCore.QObject):
         for server in self.settings["servers"]:
             monitor = JenkinsMonitor(server["url"])
             monitor._refreshFromDict(server)
+            for job in monitor.jobs:
+                settingsjob = filter(lambda settingsjob: settingsjob["name"] == job.name, server["jobs"])[0]
+                if settingsjob["monitored"]:
+                    job.enableMonitoring()
             self.monitors.append(monitor)
 
     def updateUiFromMonitors(self):
