@@ -61,7 +61,17 @@ class JobListModel(QtGui.QStringListModel):
     def flags(self, idx):
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsUserCheckable
 
+def loadJobs(settingsWidget, serverurl):
+    monitor = JenkinsMonitor(serverurl)
+    monitor.refreshFromServer()
+    settingsWidget.jobsReceived(serverurl, map(lambda job: {"color": jenkinsStateToColor(job.state),
+                                                            "name": job.name,
+                                                            "monitored": False,
+                                                            "url": job.url}, monitor.jobs))
+
 class SettingsWidget(QtGui.QWidget):
+
+    jobsDone = QtCore.pyqtSignal()
 
     def __init__(self, parent, settingsobj):
         QtGui.QWidget.__init__(self, parent)
@@ -84,7 +94,21 @@ class SettingsWidget(QtGui.QWidget):
         dlg.setMinimumSize(120, 400)
         if dlg.exec_() == QtGui.QDialog.Accepted:
             self.settings["servers"].append({"url":dlg.textValue(), "jobs":[]})
-            self.refreshModel(dlg.textValue())
+            serverurl = dlg.textValue()
+            self.fetchJobs(serverurl)
+            self.refreshModel(serverurl)
+
+    def fetchJobs(self, serverurl):
+        dlg = QProgressDialog(self)
+        thread = Thread(target=lambda: loadJobs(self, str(serverurl)))
+        thread.start()
+        self.jobsDone.connect(dlg.close)
+        dlg.exec_()
+
+    def jobsReceived(self, serverurl, joblist):
+        server = filter(lambda server: server["url"] == serverurl, self.settings["servers"])[0]
+        server["jobs"] = joblist
+        self.jobsDone.emit()
 
     def removeServer(self):
         selection = self.serverList.selectionModel().selectedRows()
