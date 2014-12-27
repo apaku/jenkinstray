@@ -77,6 +77,7 @@ class JenkinsTray(QtCore.QObject):
                 if settingsjob["monitored"]:
                     job.enableMonitoring()
             self.monitors.append(monitor)
+        self.updateUiFromMonitors()
 
     def updateUiFromMonitors(self):
         for monitor in self.monitors:
