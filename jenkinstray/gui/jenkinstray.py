@@ -60,6 +60,7 @@ class JenkinsTray(QtCore.QObject):
 
     def openSettings(self):
         dialog = QtGui.QDialog()
+        dialog.setWindowTitle("Jenkins Tray Settings")
         settings = dict(self.settings)
         settingswidget = SettingsWidget(dialog, settings)
         layout = QtGui.QVBoxLayout(dialog)
