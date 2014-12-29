@@ -54,7 +54,7 @@ class JenkinsTray(QtCore.QObject):
         self.aboutAct = QtGui.QAction("About %s" % QtGui.qApp.applicationName(), self.menu)
         self.aboutAct.activated.connect(self.aboutApp)
         self.quitAct = QtGui.QAction("Quit", self.menu)
-        self.quitAct.activated.connect(self.shutdown)
+        self.quitAct.activated.connect(QtGui.qApp.quit)
         self.menu.addAction(self.settingsAct)
         self.menu.addSeparator()
         self.menu.addAction(self.aboutAct)
@@ -119,7 +119,6 @@ class JenkinsTray(QtCore.QObject):
         painter.end()
 
     def updateUiFromMonitors(self):
-        self.writeSettings(self.createSettingsFromMonitors())
         failCnt = 0
         unstableCnt = 0
         successfulCnt = 0
@@ -183,7 +182,3 @@ class JenkinsTray(QtCore.QObject):
                                                },
                                self.monitors)
                }
-
-    def shutdown(self):
-        self.writeSettings(self.createSettingsFromMonitors())
-        QtGui.qApp.quit()
