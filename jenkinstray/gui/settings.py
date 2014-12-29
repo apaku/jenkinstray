@@ -61,14 +61,18 @@ class JobListModel(QtGui.QStringListModel):
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsUserCheckable
 
 def loadJobs(settingsWidget, serverurl):
-    monitor = JenkinsMonitor(serverurl)
-    monitor.refreshFromServer()
-    settingsWidget.jobsReceived(serverurl, map(lambda job: {"name": job.name,
-                                                            "monitored": False}, monitor.jobs))
+    try:
+        monitor = JenkinsMonitor(serverurl)
+        monitor.refreshFromServer()
+        settingsWidget.jobsReceived.emit(serverurl, map(lambda job: {"name": job.name,
+                                                                     "monitored": False}, monitor.jobs))
+    except Exception, e:
+        settingsWidget.jobLoadFailed.emit(serverurl, repr(e))
 
 class SettingsWidget(QtGui.QWidget):
 
-    jobsDone = QtCore.pyqtSignal()
+    jobsReceived = QtCore.pyqtSignal(str, list)
+    jobLoadFailed = QtCore.pyqtSignal(str, str)
 
     def __init__(self, parent, settingsobj):
         QtGui.QWidget.__init__(self, parent)
@@ -82,6 +86,13 @@ class SettingsWidget(QtGui.QWidget):
         self.removeServerBtn.setEnabled(False)
         self.addServerBtn.clicked.connect(self.addServer)
         self.removeServerBtn.clicked.connect(self.removeServer)
+
+    def reportError(self, serverurl, error):
+        QtGui.QMessageBox.critical(self, "Error loading job list", "Failed to fetch job list for %s: %s." % (serverurl, error))
+
+    def addJobs(self, serverurl, joblist):
+        server = filter(lambda server: server["url"] == serverurl, self.settings["servers"])[0]
+        server["jobs"] = joblist
 
     def addServer(self):
         dlg = QtGui.QInputDialog(self)
@@ -97,15 +108,18 @@ class SettingsWidget(QtGui.QWidget):
 
     def fetchJobs(self, serverurl):
         dlg = QProgressDialog(self)
+        self.jobsReceived.connect(self.addJobs)
+        self.jobLoadFailed.connect(self.reportError)
+        self.jobsReceived.connect(dlg.accept)
+        self.jobLoadFailed.connect(dlg.accept)
         thread = Thread(target=lambda: loadJobs(self, serverurl))
         thread.start()
-        self.jobsDone.connect(dlg.close)
         dlg.exec_()
-
-    def jobsReceived(self, serverurl, joblist):
-        server = filter(lambda server: server["url"] == serverurl, self.settings["servers"])[0]
-        server["jobs"] = joblist
-        self.jobsDone.emit()
+        self.jobLoadFailed.disconnect()
+        self.jobsReceived.disconnect()
+        if dlg.wasCanceled():
+            server = filter(lambda server: server["url"] == serverurl, self.settings["servers"])[0]
+            self.settings["servers"].remove(server)
 
     def removeServer(self):
         selection = self.serverList.selectionModel().selectedRows()
