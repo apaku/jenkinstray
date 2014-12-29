@@ -99,6 +99,9 @@ class JenkinsTray(QtCore.QObject):
                     monitorjob.enableMonitoring()
                 else:
                     monitorjob.disableMonitoring()
+        for monitor in list(self.monitors):
+            if len(filter(lambda server: monitor.serverurl == server["url"], settings["servers"])) == 0:
+                self.monitors.remove(monitor)
 
     def addCountToImage(self, failCnt, unstableCnt):
         painter = QtGui.QPainter(self.image)
@@ -130,8 +133,10 @@ class JenkinsTray(QtCore.QObject):
             self.image = QtGui.QImage(":///images/jenkinstray_failed.png")
         elif unstableCnt > 0:
             self.image = QtGui.QImage(":///images/jenkinstray_unstable.png")
-        else:
+        elif successfulCnt > 0:
             self.image = QtGui.QImage(":///images/jenkinstray_success.png")
+        else:
+            self.image = QtGui.QImage(":///images/jenkinstray.png")
         if failCnt > 0 or unstableCnt > 0:
             self.addCountToImage(failCnt, unstableCnt)
         self.trayicon.setIcon(QtGui.QIcon(QtGui.QPixmap.fromImage(self.image)))
