@@ -163,6 +163,7 @@ class JenkinsTray(QtCore.QObject):
         if dialog.exec_() == QtGui.QDialog.Accepted:
             self.writeSettings(settingsdata)
             self.updateFromSettings(settingsdata)
+            self.updateUiFromMonitors()
 
     def writeSettings(self, settings):
         if not os.path.exists(self.cfgDir):
