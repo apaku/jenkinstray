@@ -108,6 +108,8 @@ class SettingsWidget(QtGui.QWidget):
 
     def fetchJobs(self, serverurl):
         dlg = QProgressDialog(self)
+        dlg.setLabelText("Loading job information from server %s" % serverurl)
+        dlg.setMaximum(0)
         self.jobsReceived.connect(self.addJobs)
         self.jobLoadFailed.connect(self.reportError)
         self.jobsReceived.connect(dlg.accept)
