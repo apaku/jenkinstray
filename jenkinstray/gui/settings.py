@@ -25,7 +25,6 @@
 from PyQt4 import QtCore, QtGui, uic
 from PyQt4.Qt import QProgressDialog
 from threading import Thread
-from ..jenkinsjob import jenkinsStateToColor
 from ..jenkinsmonitor import JenkinsMonitor
 
 class ServerListModel(QtGui.QStringListModel):
