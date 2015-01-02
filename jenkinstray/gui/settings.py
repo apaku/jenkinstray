@@ -83,9 +83,17 @@ class SettingsWidget(QtGui.QWidget):
         self.refreshInterval.setValue(self.settings["refreshInterval"])
         self.refreshInterval.valueChanged.connect(self.updateRefreshInterval)
         self.refreshModel()
-        self.removeServerBtn.setEnabled(False)
         self.addServerBtn.clicked.connect(self.addServer)
         self.removeServerBtn.clicked.connect(self.removeServer)
+        self.checkAllBtn.clicked.connect(lambda: self.changeAllJobsCheckState(QtCore.Qt.Checked))
+        self.checkNoneBtn.clicked.connect(lambda: self.changeAllJobsCheckState(QtCore.Qt.Unchecked))
+
+    def changeAllJobsCheckState(self, newCheckState):
+        model = self.jobList.model()
+        for i in range(0, model.rowCount(QtCore.QModelIndex())):
+            idx = model.index(i, 0, QtCore.QModelIndex())
+            model.setData(idx, newCheckState, QtCore.Qt.CheckStateRole)
+        model.dataChanged.emit(model.index(0, 0, QtCore.QModelIndex()), model.index(model.rowCount() - 1, 0, QtCore.QModelIndex()))
 
     def reportError(self, serverurl, error):
         QtGui.QMessageBox.critical(self, "Error loading job list", "Failed to fetch job list for %s: %s." % (serverurl, error))
@@ -128,6 +136,7 @@ class SettingsWidget(QtGui.QWidget):
         for idx in selection:
             del self.settings["servers"][idx.row()]
             self.refreshModel()
+            self.enableSelectionBasedButtons(False)
 
     def refreshModel(self, selectServer=None):
         self.serverList.setModel(ServerListModel(map(lambda x: x["url"], self.settings["servers"]), self.serverList))
@@ -153,10 +162,15 @@ class SettingsWidget(QtGui.QWidget):
         """
         if len(selected.indexes()) > 0:
             idx = selected.indexes()[0]
-            self.removeServerBtn.setEnabled(True)
+            self.enableSelectionBasedButtons(True)
             serverUrl = idx.data()
             server = filter(lambda x: x["url"] == serverUrl, self.settings["servers"])[0]
             self.jobList.setModel(JobListModel(server["jobs"], self.jobList))
         else:
-            self.removeServerBtn.setEnabled(False)
+            self.enableSelectionBasedButtons(False)
             self.jobList.setModel(None)
+
+    def enableSelectionBasedButtons(self, enable):
+            self.removeServerBtn.setEnabled(enable)
+            self.checkAllBtn.setEnabled(enable)
+            self.checkNoneBtn.setEnabled(enable)
