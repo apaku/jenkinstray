@@ -67,12 +67,14 @@ class JenkinsTray(QtCore.QObject):
         self.aboutAct.activated.connect(self.aboutApp)
         self.quitAct = QtGui.QAction("Quit", self.menu)
         self.quitAct.activated.connect(QtGui.qApp.quit)
+        self.jobSeparator = self.menu.addSeparator()
         self.menu.addAction(self.settingsAct)
         self.menu.addSeparator()
         self.menu.addAction(self.aboutAct)
         self.menu.addAction(self.aboutQtAct)
         self.menu.addSeparator()
         self.menu.addAction(self.quitAct)
+        self.jobActionsTree = {}
         self.trayicon.setContextMenu(self.menu)
         self.image = QtGui.QImage(":///images/jenkinstray.png")
         assert(not self.image.isNull())
@@ -135,6 +137,39 @@ class JenkinsTray(QtCore.QObject):
         painter.drawText(self.image.rect(), QtCore.Qt.AlignVCenter | QtCore.Qt.AlignCenter, text)
         painter.end()
 
+    def clearJobActions(self, menu, jobActions):
+        for (_, (action, subActions)) in jobActions.iteritems():
+            if len(subActions) > 0:
+                self.clearJobActions(action.menu(), subActions)
+            menu.removeAction(action)
+
+    def buildJobActions(self, allJobs):
+        serverUrls = set(map(lambda jobAndServer: jobAndServer[0], allJobs))
+        allJobs.sort()
+        if len(serverUrls) > 1:
+            self.jobActionsTree = dict(map(lambda url: (url, (QtGui.QAction(url, self.menu), {})), serverUrls))
+            for jobinfo in allJobs:
+                serverAct = self.jobActionsTree[jobinfo[0]][0]
+                if serverAct.menu() is None:
+                    serverAct.setMenu(QtGui.QMenu(self.menu))
+                self.jobActionsTree[jobinfo[0]][1][jobinfo[1]] = (self.createAction(jobinfo[0], jobinfo[1], serverAct.menu()), {})
+        else:
+            for jobinfo in allJobs:
+                self.jobActionsTree[jobinfo[1]] = (self.createAction(jobinfo[0], jobinfo[1], self.menu), {})
+
+    def createAction(self, serverurl, jobname, menu):
+        action = QtGui.QAction(jobname, menu)
+        action.activated.connect(lambda: self.activateJobAction(serverurl, jobname))
+        menu.insertAction(self.jobSeparator, action)
+        return action
+
+    def activateJobAction(self, serverurl, jobname):
+        monitorMatches = filter(lambda monitor: monitor.serverurl == serverurl, self.monitors)
+        if len(monitorMatches) > 0:
+            jobmatches = filter(lambda job: job.name == jobname, monitorMatches[0].monitoredJobs())
+            if len(jobmatches) > 0:
+                QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromEncoded(jobmatches[0].url))
+
     def updateUiFromMonitors(self, errors):
         failCnt = 0
         unstableCnt = 0
@@ -142,11 +177,14 @@ class JenkinsTray(QtCore.QObject):
         failedjobs = []
         unstablejobs = []
         fixedjobs = []
+        self.clearJobActions(self.menu, self.jobActionsTree)
+        allJobNames = []
         for monitor in self.monitors:
             failCnt += monitor.numFailedMonitoredJobs()
             unstableCnt += monitor.numUnstableMonitoredJobs()
             successfulCnt += monitor.numSuccessfulMonitoredJobs()
             for job in monitor.monitoredJobs():
+                allJobNames.append((monitor.serverurl, job.name))
                 if job.lastState != job.state:
                     if job.state == JenkinsState.Failed and job.lastState in [JenkinsState.Unstable, JenkinsState.Successful]:
                         failedjobs.append(job.name)
@@ -154,6 +192,7 @@ class JenkinsTray(QtCore.QObject):
                         unstablejobs.append(job.name)
                     elif job.state == JenkinsState.Successful and job.lastState in [JenkinsState.Failed, JenkinsState.Unstable]:
                         fixedjobs.append(job.name)
+        self.buildJobActions(allJobNames)
         if failCnt > 0:
             self.image = QtGui.QImage(":///images/jenkinstray_failed.png")
         elif unstableCnt > 0:
