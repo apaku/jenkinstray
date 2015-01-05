@@ -54,6 +54,7 @@ class JenkinsJob(object):
         self.state = state
         assert monitored is not None 
         self.monitored = monitored
+        self.lastState = JenkinsState.Unknown
 
     def __ne__(self, other):
         return self.name != other.name or self.url != other.url or self.monitored != other.monitored or self.state != other.state

@@ -47,6 +47,7 @@ class JenkinsMonitor(object):
             if not job:
                 self.jobs.append(JenkinsJob(jobinfo["name"], False, jobinfo["url"], color))
             else:
+                job.lastState = job.state
                 job.state = color
             knownjobnames.append(jobinfo["name"])
         for job in list(self.jobs):
