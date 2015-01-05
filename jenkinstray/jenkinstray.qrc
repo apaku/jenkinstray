@@ -4,6 +4,7 @@
     <file>images/jenkinstray_unstable.png</file>
     <file>images/jenkinstray_success.png</file>
     <file>images/jenkinstray_failed.png</file>
+    <file>images/jenkinstray_disabled.png</file>
     <file>gui/settings.ui</file>
 </qresource>
 </RCC>

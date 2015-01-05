@@ -157,8 +157,21 @@ class JenkinsTray(QtCore.QObject):
             for jobinfo in allJobs:
                 self.jobActionsTree[jobinfo[1]] = (self.createAction(jobinfo[0], jobinfo[1], self.menu), {})
 
+    def iconNameForJobState(self, jobState):
+        if jobState == JenkinsState.Failed:
+            return ":///images/jenkinstray_failed.png"
+        elif jobState == JenkinsState.Disabled:
+            return ":///images/jenkinstray_disabled.png"
+        elif jobState == JenkinsState.Unstable:
+            return ":///images/jenkinstray_unstable.png"
+        elif jobState == JenkinsState.Successful:
+            return ":///images/jenkinstray_success.png"
+        else:
+            return ":///images/jenkinstray.png"
+
     def createAction(self, serverurl, jobname, menu):
-        action = QtGui.QAction(jobname, menu)
+        job = filter(lambda job: job.name == jobname, filter(lambda monitor: monitor.serverurl == serverurl, self.monitors)[0].jobs)[0]
+        action = QtGui.QAction(QtGui.QIcon(self.iconNameForJobState(job.state)), jobname, menu)
         action.activated.connect(lambda: self.activateJobAction(serverurl, jobname))
         menu.insertAction(self.jobSeparator, action)
         return action
