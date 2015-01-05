@@ -49,6 +49,7 @@ class JenkinsMonitor(object):
             else:
                 job.lastState = job.state
                 job.state = color
+                job.url = jobinfo["url"]
             knownjobnames.append(jobinfo["name"])
         for job in list(self.jobs):
             if job.name not in knownjobnames:
