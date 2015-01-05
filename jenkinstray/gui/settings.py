@@ -25,6 +25,7 @@
 from PyQt4 import QtCore, QtGui, uic
 from PyQt4.Qt import QProgressDialog
 from threading import Thread
+import traceback
 from ..jenkinsmonitor import JenkinsMonitor
 
 class ServerListModel(QtGui.QStringListModel):
@@ -67,7 +68,7 @@ def loadJobs(settingsWidget, serverurl):
         settingsWidget.jobsReceived.emit(serverurl, map(lambda job: {"name": job.name,
                                                                      "monitored": False}, monitor.jobs))
     except Exception, e:
-        settingsWidget.jobLoadFailed.emit(serverurl, repr(e))
+        settingsWidget.jobLoadFailed.emit(serverurl, traceback.format_exc())
 
 class SettingsWidget(QtGui.QWidget):
 

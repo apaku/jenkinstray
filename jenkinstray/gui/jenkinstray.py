@@ -29,6 +29,7 @@ from appdirs import user_config_dir
 import os
 import json
 import threading
+import traceback
 from ..jenkinsmonitor import JenkinsMonitor
 from .. jenkinsjob import JenkinsJob, JenkinsState
 
@@ -39,7 +40,7 @@ def refreshMonitors(trayObject):
         try:
             monitor.refreshFromServer()
         except Exception, e:
-            print "Error refreshing jenkins server %s: %s" % (monitor.serverurl, repr(e))
+            print "Error refreshing jenkins server %s: %s" % (monitor.serverurl, traceback.format_exc())
     trayObject.serverInfoUpdated.emit()
 
 class JenkinsTray(QtCore.QObject):
