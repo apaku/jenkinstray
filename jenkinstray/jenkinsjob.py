@@ -25,19 +25,24 @@
 from enum import IntEnum
 
 def colorToJenkinsState(colorstr):
-    assert(colorstr in ["blue", "yellow", "red"])
-    if colorstr == "blue":
+    assert(len(filter(lambda color: color in colorstr, ["blue", "yellow", "red", "disabled"])) == 1)
+    if colorstr.startswith("blue"):
         return JenkinsState.Successful
-    elif colorstr == "yellow":
+    elif colorstr.startswith("yellow"):
         return JenkinsState.Unstable
-    else:
+    elif colorstr.startswith("disabled"):
+        return JenkinsState.Disabled
+    elif colorstr.startswith("red"):
         return JenkinsState.Failed
+    else:
+        return JenkinsState.Unknown
 
 class JenkinsState(IntEnum):
     Unstable = 0
     Failed = 1
     Successful = 2
     Unknown = 3
+    Disabled = 4
 
 class JenkinsJob(object):
     def __init__(self, name, monitored, url, state):
