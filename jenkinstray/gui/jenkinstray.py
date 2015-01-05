@@ -36,20 +36,27 @@ from ..jenkinsjob import JenkinsJob, JenkinsState
 CONFIG_FILENAME = "jenkinstray.json"
 
 def refreshMonitors(trayObject):
+    errors = []
     for monitor in trayObject.monitors:
         try:
             monitor.refreshFromServer()
+            if monitor in trayObject.monitorsWithConnectivityProblems:
+                trayObject.monitorsWithConnectivityProblems.remove(monitor)
         except Exception, e:
+            if monitor not in trayObject.monitorsWithConnectivityProblems:
+                errors.append(str(e))
+            trayObject.monitorsWithConnectivityProblems.append(monitor)
             print "Error refreshing jenkins server %s: %s" % (monitor.serverurl, traceback.format_exc())
-    trayObject.serverInfoUpdated.emit()
+    trayObject.serverInfoUpdated.emit(errors)
 
 class JenkinsTray(QtCore.QObject):
 
-    serverInfoUpdated = QtCore.pyqtSignal()
+    serverInfoUpdated = QtCore.pyqtSignal(list)
 
     def __init__(self, parent):
         QtCore.QObject.__init__(self, parent)
         self.monitors = []
+        self.monitorsWithConnectivityProblems = []
         self.trayicon = QtGui.QSystemTrayIcon(self)
         self.menu = QtGui.QMenu()
         self.settingsAct = QtGui.QAction("Settings...", self.menu)
@@ -131,7 +138,7 @@ class JenkinsTray(QtCore.QObject):
         painter.drawText(self.image.rect(), QtCore.Qt.AlignVCenter | QtCore.Qt.AlignCenter, text)
         painter.end()
 
-    def updateUiFromMonitors(self):
+    def updateUiFromMonitors(self, errors):
         failCnt = 0
         unstableCnt = 0
         successfulCnt = 0
@@ -158,7 +165,9 @@ class JenkinsTray(QtCore.QObject):
             self.image = QtGui.QImage(":///images/jenkinstray_success.png")
         else:
             self.image = QtGui.QImage(":///images/jenkinstray.png")
-        if len(failedjobs) > 0:
+        if len(errors) > 0:
+            self.trayicon.showMessage("Connectivity Problems", "\n".join(errors), QtGui.QSystemTrayIcon.Critical, self.notificationTimeout)
+        elif len(failedjobs) > 0:
             self.trayicon.showMessage("Failed Jobs", "\n".join(failedjobs), QtGui.QSystemTrayIcon.Critical, self.notificationTimeout)
         elif len(fixedjobs) > 0:
             self.trayicon.showMessage("Fixed Jobs", "\n".join(fixedjobs), QtGui.QSystemTrayIcon.Information, self.notificationTimeout)
