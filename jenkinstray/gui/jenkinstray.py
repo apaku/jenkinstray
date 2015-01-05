@@ -104,10 +104,6 @@ class JenkinsTray(QtCore.QObject):
                 monitor = match[0]
             else:
                 monitor = JenkinsMonitor(server["url"])
-                try:
-                    monitor.refreshFromServer()
-                except Exception, e:
-                    print "Error loading jobs from server %s: %s" % (server["url"], repr(e))
                 self.monitors.append(monitor)
             for job in server["jobs"]:
                 monitorjobmatches = filter(lambda monitorjob: monitorjob.name == job["name"], monitor.allJobs())
@@ -115,6 +111,7 @@ class JenkinsTray(QtCore.QObject):
                     monitorjob = monitorjobmatches[0]
                 else:
                     monitorjob = JenkinsJob(job["name"], job["monitored"], "Unknown", JenkinsState.Unknown)
+                    monitor.jobs.append(monitorjob)
                 if job["monitored"]:
                     monitorjob.enableMonitoring()
                 else:
@@ -199,7 +196,6 @@ class JenkinsTray(QtCore.QObject):
         if dialog.exec_() == QtGui.QDialog.Accepted:
             self.writeSettings(settingsdata)
             self.updateFromSettings(settingsdata)
-            self.updateUiFromMonitors()
 
     def writeSettings(self, settings):
         if not os.path.exists(self.cfgDir):
