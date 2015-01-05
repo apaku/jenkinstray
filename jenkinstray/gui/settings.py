@@ -83,6 +83,8 @@ class SettingsWidget(QtGui.QWidget):
         uic.loadUi(self.uiFile, self)
         self.refreshInterval.setValue(self.settings["refreshInterval"])
         self.refreshInterval.valueChanged.connect(self.updateRefreshInterval)
+        self.hideNotificationTimeout.setValue(self.settings["notificationTimeout"])
+        self.hideNotificationTimeout.valueChanged.connect(self.updateNotificationTimeout)
         self.refreshModel()
         self.addServerBtn.clicked.connect(self.addServer)
         self.removeServerBtn.clicked.connect(self.removeServer)
@@ -155,6 +157,9 @@ class SettingsWidget(QtGui.QWidget):
 
     def updateRefreshInterval(self, val):
         self.settings["refreshInterval"] = val
+
+    def updateNotificationTimeout(self, val):
+        self.settings["notificationTimeout"] = val
 
     def serverSelected(self, selected, deselected):
         """

@@ -31,7 +31,7 @@ import json
 import threading
 import traceback
 from ..jenkinsmonitor import JenkinsMonitor
-from .. jenkinsjob import JenkinsJob, JenkinsState
+from ..jenkinsjob import JenkinsJob, JenkinsState
 
 CONFIG_FILENAME = "jenkinstray.json"
 
@@ -89,6 +89,7 @@ class JenkinsTray(QtCore.QObject):
 
     def updateFromSettings(self, settings):
         self.timer.setInterval(settings["refreshInterval"] * 1000)
+        self.notificationTimeout = settings["notificationTimeout"] * 1000
         for server in settings["servers"]:
             match = filter(lambda monitor: monitor.serverurl == server["url"], self.monitors)
             monitor = None
@@ -134,10 +135,21 @@ class JenkinsTray(QtCore.QObject):
         failCnt = 0
         unstableCnt = 0
         successfulCnt = 0
+        failedjobs = []
+        unstablejobs = []
+        fixedjobs = []
         for monitor in self.monitors:
             failCnt += monitor.numFailedMonitoredJobs()
             unstableCnt += monitor.numUnstableMonitoredJobs()
             successfulCnt += monitor.numSuccessfulMonitoredJobs()
+            for job in monitor.monitoredJobs():
+                if job.lastState != job.state:
+                    if job.state == JenkinsState.Failed and job.lastState in [JenkinsState.Unstable, JenkinsState.Successful]:
+                        failedjobs.append(job.name)
+                    elif job.state == JenkinsState.Unstable and job.lastState in [JenkinsState.Failed, JenkinsState.Successful]:
+                        unstablejobs.append(job.name)
+                    elif job.state == JenkinsState.Successful and job.lastState in [JenkinsState.Failed, JenkinsState.Unstable]:
+                        fixedjobs.append(job.name)
         if failCnt > 0:
             self.image = QtGui.QImage(":///images/jenkinstray_failed.png")
         elif unstableCnt > 0:
@@ -146,6 +158,12 @@ class JenkinsTray(QtCore.QObject):
             self.image = QtGui.QImage(":///images/jenkinstray_success.png")
         else:
             self.image = QtGui.QImage(":///images/jenkinstray.png")
+        if len(failedjobs) > 0:
+            self.trayicon.showMessage("Failed Jobs", "\n".join(failedjobs), QtGui.QSystemTrayIcon.Critical, self.notificationTimeout)
+        elif len(fixedjobs) > 0:
+            self.trayicon.showMessage("Fixed Jobs", "\n".join(fixedjobs), QtGui.QSystemTrayIcon.Information, self.notificationTimeout)
+        elif len(unstablejobs) > 0:
+            self.trayicon.showMessage("Unstable Jobs", "\n".join(unstablejobs), QtGui.QSystemTrayIcon.Warning, self.notificationTimeout)
         if failCnt > 0 or unstableCnt > 0:
             self.addCountToImage(failCnt + unstableCnt)
         self.trayicon.setIcon(QtGui.QIcon(QtGui.QPixmap.fromImage(self.image)))
@@ -155,7 +173,7 @@ class JenkinsTray(QtCore.QObject):
         try:
             return json.load(open(os.path.join(self.cfgDir, CONFIG_FILENAME), "r"))
         except:
-            return {"refreshInterval": 60, "servers": []}
+            return {"refreshInterval": 60, "servers": [], "notificationTimeout": 10}
 
     def openSettings(self):
         dialog = QtGui.QDialog()
@@ -182,6 +200,7 @@ class JenkinsTray(QtCore.QObject):
     def createSettingsFromMonitors(self):
         return {
                 "refreshInterval": int(self.timer.interval() / 1000),
+                "notificationTimeout": int(self.notificationTimeout / 1000),
                 "servers": map(lambda monitor: {
                                                 "url": monitor.serverurl,
                                                 "jobs": map(lambda job: {
