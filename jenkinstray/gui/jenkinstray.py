@@ -30,12 +30,16 @@ import os
 import json
 import threading
 from ..jenkinsmonitor import JenkinsMonitor
+from .. jenkinsjob import JenkinsJob, JenkinsState
 
 CONFIG_FILENAME = "jenkinstray.json"
 
 def refreshMonitors(trayObject):
     for monitor in trayObject.monitors:
-        monitor.refreshFromServer()
+        try:
+            monitor.refreshFromServer()
+        except Exception, e:
+            print "Error refreshing jenkins server %s: %s" % (monitor.serverurl, repr(e))
     trayObject.serverInfoUpdated.emit()
 
 class JenkinsTray(QtCore.QObject):
@@ -91,10 +95,17 @@ class JenkinsTray(QtCore.QObject):
                 monitor = match[0]
             else:
                 monitor = JenkinsMonitor(server["url"])
-                monitor.refreshFromServer()
+                try:
+                    monitor.refreshFromServer()
+                except Exception, e:
+                    print "Error loading jobs from server %s: %s" % (server["url"], repr(e))
                 self.monitors.append(monitor)
             for job in server["jobs"]:
-                monitorjob = filter(lambda monitorjob: monitorjob.name == job["name"], monitor.allJobs())[0]
+                monitorjobmatches = filter(lambda monitorjob: monitorjob.name == job["name"], monitor.allJobs())
+                if monitorjobmatches:
+                    monitorjob = monitorjobmatches[0]
+                else:
+                    monitorjob = JenkinsJob(job["name"], job["monitored"], "Unknown", JenkinsState.Unknown)
                 if job["monitored"]:
                     monitorjob.enableMonitoring()
                 else:
@@ -103,13 +114,13 @@ class JenkinsTray(QtCore.QObject):
             if len(filter(lambda server: monitor.serverurl == server["url"], settings["servers"])) == 0:
                 self.monitors.remove(monitor)
 
-    def addCountToImage(self, failCnt, unstableCnt):
+    def addCountToImage(self, number):
         painter = QtGui.QPainter(self.image)
         font = painter.font()
         maxwidth = self.image.width() - round(self.image.width() * .3)
         maxheight = self.image.height() - round(self.image.height() * .3)
         metrics = QtGui.QFontMetrics(font)
-        text = str(failCnt + unstableCnt)
+        text = str(number)
         while metrics.width(text) < maxwidth and metrics.height() < maxheight:
             font.setPointSize(font.pointSize() + 1)
             metrics = QtGui.QFontMetrics(font)
@@ -123,11 +134,9 @@ class JenkinsTray(QtCore.QObject):
         unstableCnt = 0
         successfulCnt = 0
         for monitor in self.monitors:
-            monitorFailCnt = monitor.numFailedMonitoredJobs()
-            monitorUnstableCnt = monitor.numUnstableMonitoredJobs()
-            failCnt += monitorFailCnt
-            unstableCnt += monitorUnstableCnt
-            successfulCnt += len(list(monitor.monitoredJobs())) - monitorFailCnt - monitorUnstableCnt
+            failCnt += monitor.numFailedMonitoredJobs()
+            unstableCnt += monitor.numUnstableMonitoredJobs()
+            successfulCnt += monitor.numSuccessfulMonitoredJobs()
         if failCnt > 0:
             self.image = QtGui.QImage(":///images/jenkinstray_failed.png")
         elif unstableCnt > 0:
@@ -137,7 +146,7 @@ class JenkinsTray(QtCore.QObject):
         else:
             self.image = QtGui.QImage(":///images/jenkinstray.png")
         if failCnt > 0 or unstableCnt > 0:
-            self.addCountToImage(failCnt, unstableCnt)
+            self.addCountToImage(failCnt + unstableCnt)
         self.trayicon.setIcon(QtGui.QIcon(QtGui.QPixmap.fromImage(self.image)))
         self.trayicon.setToolTip("%s failed jobs\n%s unstable jobs\n%s successful jobs" % (failCnt, unstableCnt, successfulCnt))
 

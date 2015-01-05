@@ -37,6 +37,7 @@ class JenkinsState(IntEnum):
     Unstable = 0
     Failed = 1
     Successful = 2
+    Unknown = 3
 
 class JenkinsJob(object):
     def __init__(self, name, monitored, url, state):

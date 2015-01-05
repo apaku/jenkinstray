@@ -34,7 +34,9 @@ class JenkinsMonitor(object):
     def refreshFromServer(self):
         try:
             self._refreshFromDict(json.load(urllib2.urlopen(self.serverurl + "/api/json")))
-        except urllib2.HTTPError, e:
+        except (urllib2.HTTPError, urllib2.URLError), e:
+            for job in self.jobs:
+                job.state = JenkinsState.Unknown
             raise RuntimeError("Failed to fetch jenkins data from: %s - %s" %(self.serverurl, e))
 
     def _refreshFromDict(self, dictobj):
@@ -77,6 +79,9 @@ class JenkinsMonitor(object):
 
     def numFailedMonitoredJobs(self):
         return reduce(lambda cnt, job: cnt + 1 if job.state == JenkinsState.Failed else cnt, self.monitoredJobs(), 0)
+
+    def numSuccessfulMonitoredJobs(self):
+        return reduce(lambda cnt, job: cnt + 1 if job.state == JenkinsState.Successful else cnt, self.monitoredJobs(), 0)
 
     def numUnstableMonitoredJobs(self):
         return reduce(lambda cnt, job: cnt + 1 if job.state == JenkinsState.Unstable else cnt, self.monitoredJobs(), 0)
