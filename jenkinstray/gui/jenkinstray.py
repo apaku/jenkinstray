@@ -60,13 +60,13 @@ class JenkinsTray(QtCore.QObject):
         self.trayicon = QtGui.QSystemTrayIcon(self)
         self.menu = QtGui.QMenu()
         self.settingsAct = QtGui.QAction("Settings...", self.menu)
-        self.settingsAct.activated.connect(self.openSettings)
+        self.settingsAct.triggered.connect(self.openSettings)
         self.aboutQtAct = QtGui.QAction("About Qt", self.menu)
-        self.aboutQtAct.activated.connect(self.aboutQt)
+        self.aboutQtAct.triggered.connect(self.aboutQt)
         self.aboutAct = QtGui.QAction("About %s" % QtGui.qApp.applicationName(), self.menu)
-        self.aboutAct.activated.connect(self.aboutApp)
+        self.aboutAct.triggered.connect(self.aboutApp)
         self.quitAct = QtGui.QAction("Quit", self.menu)
-        self.quitAct.activated.connect(QtGui.qApp.quit)
+        self.quitAct.triggered.connect(QtGui.qApp.quit)
         self.jobSeparator = self.menu.addSeparator()
         self.menu.addAction(self.settingsAct)
         self.menu.addSeparator()
@@ -172,7 +172,7 @@ class JenkinsTray(QtCore.QObject):
     def createAction(self, serverurl, jobname, menu):
         job = filter(lambda job: job.name == jobname, filter(lambda monitor: monitor.serverurl == serverurl, self.monitors)[0].jobs)[0]
         action = QtGui.QAction(QtGui.QIcon(self.iconNameForJobState(job.state)), jobname, menu)
-        action.activated.connect(lambda: self.activateJobAction(serverurl, jobname))
+        action.triggered.connect(lambda: self.activateJobAction(serverurl, jobname))
         menu.insertAction(self.jobSeparator, action)
         return action
 
