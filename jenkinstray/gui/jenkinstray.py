@@ -235,10 +235,10 @@ class JenkinsTray(QtCore.QObject):
 
     def openSettings(self):
         dialog = QtGui.QDialog()
+        layout = QtGui.QVBoxLayout(dialog)
         dialog.setWindowTitle("Jenkins Tray Settings")
         settingsdata = self.createSettingsFromMonitors()
         settingswidget = SettingsWidget(dialog, settingsdata)
-        layout = QtGui.QVBoxLayout(dialog)
         layout.addWidget(settingswidget)
         buttonbox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.StandardButtons(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel), QtCore.Qt.Horizontal, dialog)
         layout.addWidget(buttonbox)
