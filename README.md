@@ -9,6 +9,9 @@ Features:
 
 * Multiple servers can be monitored
 * Jobs to watch can be configured for each server
+* Combined job state shown through the icon with colors similar to standard
+  jenkins installation
+* indicates number of failed and unstable jobs in the systray icon
 * configurable interval for polling
 * job state changes are reported via balloon tip
 * configurable timeout for hiding of the balloon tip
