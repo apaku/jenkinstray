@@ -35,6 +35,7 @@ def main(args):
     app = QtGui.QApplication(args)
     app.setApplicationVersion("0.1")
     app.setApplicationName("Jenkins Tray")
+    QtGui.QApplication.setWindowIcon(QtGui.QIcon(":///images/jenkinstray_success.png"))
     QtGui.QApplication.setQuitOnLastWindowClosed(False)
     tray = JenkinsTray(app)
     return app.exec_()
