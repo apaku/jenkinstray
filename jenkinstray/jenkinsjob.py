@@ -25,12 +25,12 @@
 from enum import IntEnum
 
 def colorToJenkinsState(colorstr):
-    assert(len(filter(lambda color: color in colorstr, ["blue", "yellow", "red", "disabled", "notbuilt"])) == 1)
+    assert(len(filter(lambda color: color in colorstr, ["blue", "yellow", "red", "disabled", "notbuilt", "aborted"])) == 1)
     if colorstr.startswith("blue"):
         return JenkinsState.Successful
     elif colorstr.startswith("yellow"):
         return JenkinsState.Unstable
-    elif colorstr.startswith("disabled") or colorstr.startswith("notbuilt"):
+    elif colorstr.startswith("disabled") or colorstr.startswith("notbuilt") or colorstr.startswith("aborted"):
         return JenkinsState.Disabled
     elif colorstr.startswith("red"):
         return JenkinsState.Failed
