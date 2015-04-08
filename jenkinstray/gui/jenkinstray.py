@@ -30,8 +30,13 @@ import os
 import json
 import threading
 import traceback
+import sys
 from ..jenkinsmonitor import JenkinsMonitor
 from ..jenkinsjob import JenkinsJob, JenkinsState
+
+import mem
+
+last_histogram = None
 
 CONFIG_FILENAME = "jenkinstray.json"
 
@@ -226,6 +231,14 @@ class JenkinsTray(QtCore.QObject):
             self.addCountToImage(failCnt + unstableCnt)
         self.trayicon.setIcon(QtGui.QIcon(QtGui.QPixmap.fromImage(self.image)))
         self.trayicon.setToolTip("%s failed jobs\n%s unstable jobs\n%s successful jobs" % (failCnt, unstableCnt, successfulCnt))
+        if "--debug-memory" in sys.argv:
+            global last_histogram
+            if last_histogram is None:
+                last_histogram = mem.gc_histogram()
+            else:
+                new_histogram = mem.gc_histogram()
+                mem.diff_hists(last_histogram, new_histogram)
+                last_histogram = new_histogram
 
     def readSettings(self):
         try:
